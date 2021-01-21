@@ -1,6 +1,8 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/mongo')
 
 const app = express()
 app.use(express.json())
@@ -21,7 +23,7 @@ let persons = [
     id: 2
   },
   {
-    name: 'Dan Abramov',
+    name: 'n',
     number: '12-43-234345',
     id: 3
   },
@@ -37,17 +39,21 @@ app.get('/', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Person.find({}).then((persons) => {
+    res.json(persons)
+  })
 })
 
 app.get('/api/persons/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  const person = persons.find((p) => p.id === id)
-  if (person) {
-    res.json(person).send()
-  } else {
-    res.status(404).end()
-  }
+  // const id = parseInt(req.params.id)
+  const id = req.params.id
+  Person.findById(id).then(p => {
+    if (p) {
+      res.json(p).send()
+    } else {
+      res.status(404).end()
+    }
+  })
 })
 
 app.delete('/api/persons/:id', (req, res) => {
@@ -56,42 +62,40 @@ app.delete('/api/persons/:id', (req, res) => {
   res.status(204).end()
 })
 
-function getRandomInt (min, max) {
-  min = Math.ceil(min)
-  max = Math.floor(max)
-  return Math.floor(Math.random() * (max - min) + min)
-}
-
-let maxId
+// function getRandomInt (min, max) {
+//   min = Math.ceil(min)
+//   max = Math.floor(max)
+//   return Math.floor(Math.random() * (max - min) + min)
+// }
 
 app.post('/api/persons', (req, res) => {
-  if (!maxId) maxId = Math.max(...persons.map((p) => p.id))
-
-  const newPerson = req.body
-  if (!newPerson.name) {
+  const aPerson = req.body
+  if (!aPerson.name) {
     res.status(403).send({ error: 'name is required' })
     return
   }
-  if (!newPerson.number) {
+  if (!aPerson.number) {
     res.status(403).send({ error: 'number is required' })
     return
   }
-  if (persons.find(p => p.name === newPerson.name)) {
-    res.status(403).send({ error: 'name must be unique' })
-    return
-  }
-  persons = persons.concat({
-    id: getRandomInt(maxId, Number.MAX_SAFE_INTEGER),
-    ...newPerson
-  })
-  res.json(persons)
+  Person.find({}).then((persons) => {
+    if (persons.find(p => p.name === aPerson.name)) {
+      res.status(403).send({ error: 'name must be unique' })
+    }
+  }).then(res => new Person(aPerson).save())
+    .then(result => {
+      // console.log(`add ${person.name} number ${person.number} to phonebook`)
+      res.json(result)
+    })
 })
 
 app.get('/info', (req, res) => {
-  res.send(`
-    <div>Phonebook has info for ${persons.length} people</div>
-    <div>${new Date()}</div>
-  `)
+  Person.find({}).then(result => {
+    res.send(`
+      <div>Phonebook has info for ${result.length} people</div>
+      <div>${new Date()}</div>
+    `)
+  })
 })
 
 const PORT = process.env.PORT || 3001
