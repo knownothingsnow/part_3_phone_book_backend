@@ -11,29 +11,6 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :b
 app.use(cors())
 app.use(express.static('build'))
 
-let persons = [
-  {
-    name: 'Arto Hellas',
-    number: '040-123456',
-    id: 1
-  },
-  {
-    name: 'Ada Lovelace',
-    number: '39-44-5323523',
-    id: 2
-  },
-  {
-    name: 'n',
-    number: '12-43-234345',
-    id: 3
-  },
-  {
-    name: 'Mary Poppendieck',
-    number: '39-23-6423122',
-    id: 4
-  }
-]
-
 app.get('/', (req, res) => {
   res.send('<h1>Hello World!</h1>')
 })
@@ -44,8 +21,7 @@ app.get('/api/persons', (req, res) => {
   })
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  // const id = parseInt(req.params.id)
+app.get('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
   Person.findById(id).then(p => {
     if (p) {
@@ -53,20 +29,20 @@ app.get('/api/persons/:id', (req, res) => {
     } else {
       res.status(404).end()
     }
+  }).catch(err => {
+    console.log(err)
+    next(err)
+    // res.status(500).end()
   })
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  persons = persons.filter((note) => note.id !== id)
-  res.status(204).end()
+app.delete('/api/persons/:id', (req, res, next) => {
+  const id = req.params.id
+  Person.findByIdAndRemove(id).then(result => {
+    res.status(204).end()
+  })
+    .catch(error => next(error))
 })
-
-// function getRandomInt (min, max) {
-//   min = Math.ceil(min)
-//   max = Math.floor(max)
-//   return Math.floor(Math.random() * (max - min) + min)
-// }
 
 app.post('/api/persons', (req, res) => {
   const aPerson = req.body
@@ -85,6 +61,25 @@ app.post('/api/persons', (req, res) => {
   }).then(res => new Person(aPerson).save())
     .then(result => {
       // console.log(`add ${person.name} number ${person.number} to phonebook`)
+      res.json(result)
+    })
+})
+
+app.put('/api/persons/:id', (req, res) => {
+  const id = req.params.id
+  const aPerson = req.body
+  if (!aPerson.name) {
+    res.status(403).send({ error: 'name is required' })
+    return
+  }
+  if (!aPerson.number) {
+    res.status(403).send({ error: 'number is required' })
+    return
+  }
+  Person.find({})
+    .then((persons) => Person.findByIdAndUpdate(id, aPerson, { new: true }))
+    .then(result => {
+      console.log(`add ${aPerson.name} number ${aPerson.number} to phonebook`)
       res.json(result)
     })
 })
