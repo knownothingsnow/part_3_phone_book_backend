@@ -29,11 +29,7 @@ app.get('/api/persons/:id', (req, res, next) => {
     } else {
       res.status(404).end()
     }
-  }).catch(err => {
-    console.log(err)
-    next(err)
-    // res.status(500).end()
-  })
+  }).catch(err => next(err))
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
@@ -92,6 +88,24 @@ app.get('/info', (req, res) => {
     `)
   })
 })
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+    return response.status(400).send({ error: 'malformatted id' })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
