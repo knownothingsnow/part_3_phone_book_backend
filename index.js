@@ -56,9 +56,10 @@ app.post('/api/persons', (req, res, next) => {
     .catch(err => next(err))
 })
 
-app.put('/api/persons/:id', (req, res) => {
+app.put('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
-  Person.findByIdAndUpdate(id, req.body, { new: true })
+  Person
+    .findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
     .then(result => {
       console.log(`add ${req.body.name} number ${req.body.number} to phonebook`)
       res.json(result)
