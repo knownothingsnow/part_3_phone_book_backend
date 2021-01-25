@@ -16,14 +16,19 @@ app.get('/', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-  Person.find({}).then((persons) => {
+  Person
+    .find({})
+    .then((persons) => {
     res.json(persons)
-  })
+    })
+    .catch(error => next(error))
 })
 
 app.get('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
-  Person.findById(id).then(p => {
+  Person
+    .findById(id)
+    .then(p => {
     if (p) {
       res.json(p).send()
     } else {
@@ -34,50 +39,31 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
-  Person.findByIdAndRemove(id).then(result => {
+  Person
+    .findByIdAndRemove(id)
+    .then(result => {
     res.status(204).end()
   })
     .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
-  const aPerson = req.body
-  if (!aPerson.name) {
-    res.status(403).send({ error: 'name is required' })
-    return
-  }
-  if (!aPerson.number) {
-    res.status(403).send({ error: 'number is required' })
-    return
-  }
-  Person.find({}).then((persons) => {
-    if (persons.find(p => p.name === aPerson.name)) {
-      res.status(403).send({ error: 'name must be unique' })
-    }
-  }).then(res => new Person(aPerson).save())
+app.post('/api/persons', (req, res, next) => {
+  new Person(req.body)
+    .save()
     .then(result => {
-      // console.log(`add ${person.name} number ${person.number} to phonebook`)
       res.json(result)
     })
+    .catch(err => next(err))
 })
 
 app.put('/api/persons/:id', (req, res) => {
   const id = req.params.id
-  const aPerson = req.body
-  if (!aPerson.name) {
-    res.status(403).send({ error: 'name is required' })
-    return
-  }
-  if (!aPerson.number) {
-    res.status(403).send({ error: 'number is required' })
-    return
-  }
-  Person.find({})
-    .then((persons) => Person.findByIdAndUpdate(id, aPerson, { new: true }))
+  Person.findByIdAndUpdate(id, req.body, { new: true })
     .then(result => {
-      console.log(`add ${aPerson.name} number ${aPerson.number} to phonebook`)
+      console.log(`add ${req.body.name} number ${req.body.number} to phonebook`)
       res.json(result)
     })
+    .catch(error => next(error))
 })
 
 app.get('/info', (req, res) => {
@@ -87,6 +73,7 @@ app.get('/info', (req, res) => {
       <div>${new Date()}</div>
     `)
   })
+    .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -96,10 +83,15 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
+  // console.table(error)
   console.error(error.message)
 
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
     return response.status(400).send({ error: 'malformatted id' })
+  }
+
+  if (error.name === 'ValidationError') {
+    return response.status(403).send({ error: error.message })
   }
 
   next(error)
