@@ -15,11 +15,11 @@ app.get('/', (req, res) => {
   res.send('<h1>Hello World!</h1>')
 })
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
   Person
     .find({})
     .then((persons) => {
-    res.json(persons)
+      res.json(persons)
     })
     .catch(error => next(error))
 })
@@ -29,12 +29,12 @@ app.get('/api/persons/:id', (req, res, next) => {
   Person
     .findById(id)
     .then(p => {
-    if (p) {
-      res.json(p).send()
-    } else {
-      res.status(404).end()
-    }
-  }).catch(err => next(err))
+      if (p) {
+        res.json(p).send()
+      } else {
+        res.status(404).end()
+      }
+    }).catch(err => next(err))
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
@@ -42,8 +42,8 @@ app.delete('/api/persons/:id', (req, res, next) => {
   Person
     .findByIdAndRemove(id)
     .then(result => {
-    res.status(204).end()
-  })
+      res.status(204).end()
+    })
     .catch(error => next(error))
 })
 
@@ -67,7 +67,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     .catch(error => next(error))
 })
 
-app.get('/info', (req, res) => {
+app.get('/info', (req, res, next) => {
   Person.find({}).then(result => {
     res.send(`
       <div>Phonebook has info for ${result.length} people</div>
@@ -87,7 +87,7 @@ const errorHandler = (error, request, response, next) => {
   // console.table(error)
   console.error(error.message)
 
-  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
     return response.status(400).send({ error: 'malformatted id' })
   }
 
